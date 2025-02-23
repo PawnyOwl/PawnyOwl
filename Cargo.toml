@@ -1,6 +1,12 @@
-[package]
-name = "pawnyowl"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+members = [
+    "board",
+    "pawnyowl",
+]
+resolver = "2"
 
-[dependencies]
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+repository = "https://github.com/PawnyOwl/PawnyOwl"
+license = "MIT"
