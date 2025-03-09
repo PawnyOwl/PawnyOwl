@@ -620,7 +620,7 @@ fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: RawUndo) {
 }
 
 #[inline]
-pub unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: RawUndo) {
+pub(crate) unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: RawUndo) {
     match b.r.side {
         Color::White => do_unmake_move::<generic::Black>(b, mv, u),
         Color::Black => do_unmake_move::<generic::White>(b, mv, u),

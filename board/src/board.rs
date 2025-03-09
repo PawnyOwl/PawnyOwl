@@ -230,6 +230,11 @@ impl Board {
     }
 
     #[inline]
+    pub unsafe fn unmake_move_unchecked(&mut self, mv: Move, u: RawUndo) {
+        unsafe { moves::unmake_move_unchecked(self, mv, u) }
+    }
+
+    #[inline]
     pub fn make_move(&mut self, mv: Move) -> Result<(), moves::ValidateError> {
         mv.validate(self)?;
         _ = unsafe { self.make_move_unchecked(mv) };
