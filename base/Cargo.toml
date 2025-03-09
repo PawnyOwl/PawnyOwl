@@ -1,0 +1,10 @@
+[package]
+name = "pawnyowl_base"
+edition.workspace = true
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror = "2.0.11"
+derive_more = { version = "2.0.1", features = ["add", "add_assign", "not"] }

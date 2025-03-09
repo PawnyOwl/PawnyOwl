@@ -1,14 +1,19 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+#![allow(clippy::missing_safety_doc)]
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use pawnyowl_base::{bitboard, core, geometry};
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub mod board;
+pub mod movegen;
+pub mod moves;
+
+mod attack;
+mod between;
+mod castling;
+mod generic;
+mod pawns;
+mod zobrist;
+
+pub use bitboard::Bitboard;
+pub use board::{Board, RawBoard};
+pub use core::{CastlingRights, Cell, Color, File, Piece, Rank, Sq};
+pub use moves::{Move, MoveKind};
