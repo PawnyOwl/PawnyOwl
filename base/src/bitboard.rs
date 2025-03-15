@@ -187,7 +187,7 @@ impl IntoIterator for Bitboard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{File, Rank, Sq};
+    use crate::core::{File, Rank, Sq};
 
     #[test]
     fn test_iter() {
