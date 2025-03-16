@@ -117,7 +117,7 @@ pub fn selftest(b: &Board) {
         if is_legal {
             test_board_valid(&b_clone);
         }
-        unsafe { b_clone.unmake_move_unchecked(*m, u) };
+        unsafe { b_clone.unmake_move_unchecked(*m, &u) };
         assert_eq!(BoardFullEq(&b_clone), BoardFullEq(b));
     }
 

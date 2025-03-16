@@ -562,7 +562,7 @@ pub(crate) unsafe fn make_move_unchecked(b: &mut Board, mv: Move) -> RawUndo {
 }
 
 #[inline(never)]
-fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: RawUndo) {
+fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: &RawUndo) {
     let c = C::COLOR;
     let src = Bitboard::one(mv.src);
     let dst = Bitboard::one(mv.dst);
@@ -625,7 +625,7 @@ fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: RawUndo) {
 }
 
 #[inline]
-pub(crate) unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: RawUndo) {
+pub(crate) unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: &RawUndo) {
     match b.r.side {
         Color::White => do_unmake_move::<generic::Black>(b, mv, u),
         Color::Black => do_unmake_move::<generic::White>(b, mv, u),
@@ -941,7 +941,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, u) };
+            unsafe { unmake_move_unchecked(&mut b, m, &u) };
             assert_eq!(b, b_copy);
         }
     }
@@ -975,7 +975,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, u) };
+            unsafe { unmake_move_unchecked(&mut b, m, &u) };
             assert_eq!(b, b_copy);
         }
     }
@@ -996,7 +996,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, u) };
+            unsafe { unmake_move_unchecked(&mut b, m, &u) };
             assert_eq!(b, b_copy);
         }
     }

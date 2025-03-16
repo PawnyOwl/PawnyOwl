@@ -117,6 +117,16 @@ impl Bitboard {
     pub const fn as_raw(self) -> u64 {
         self.0
     }
+
+    #[inline]
+    pub const fn flipped_rank(self) -> Self {
+        Self(self.0.swap_bytes())
+    }
+
+    #[inline]
+    pub const fn flipped_file(self) -> Self {
+        Self(self.0.reverse_bits().swap_bytes())
+    }
 }
 
 impl From<Bitboard> for u64 {
