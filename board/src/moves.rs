@@ -32,6 +32,11 @@ impl MoveKind {
     }
 
     #[inline]
+    pub fn iter() -> impl Iterator<Item = Self> {
+        (0..Self::COUNT).map(|x| unsafe { Self::from_index_unchecked(x) })
+    }
+
+    #[inline]
     pub const unsafe fn from_index_unchecked(val: usize) -> Self {
         match val {
             0 => Self::Null,
@@ -639,11 +644,7 @@ fn is_rook_semilegal(src: Sq, dst: Sq, all: Bitboard) -> bool {
 
 #[inline(always)]
 fn is_queen_semilegal(src: Sq, dst: Sq, all: Bitboard) -> bool {
-    if between::is_bishop_valid(src, dst) {
-        (between::bishop_strict(src, dst) & all).is_empty()
-    } else {
-        (between::rook_strict(src, dst) & all).is_empty()
-    }
+    is_bishop_semilegal(src, dst, all) || is_rook_semilegal(src, dst, all)
 }
 
 #[inline(never)]

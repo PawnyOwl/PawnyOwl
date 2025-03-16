@@ -59,6 +59,13 @@ impl<const N: usize> MovePush for ArrayVec<Move, N> {
     }
 }
 
+impl MovePush for Vec<Move> {
+    #[inline]
+    fn push(&mut self, m: Move) {
+        self.push(m);
+    }
+}
+
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct UncheckedMoveList<const N: usize>(ArrayVec<Move, N>);
 
