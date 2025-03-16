@@ -5,6 +5,7 @@ pub use pawnyowl_base::{bitboard, core, geometry};
 pub mod board;
 pub mod movegen;
 pub mod moves;
+pub mod selftest;
 
 mod attack;
 mod between;
