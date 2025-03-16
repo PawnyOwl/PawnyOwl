@@ -38,6 +38,21 @@ pub fn is_rook_valid(src: Sq, dst: Sq) -> bool {
     unsafe { ROOK_NE.get_unchecked(src.index()).has(dst) }
 }
 
+#[inline]
+pub fn between(src: Sq, dst: Sq) -> Bitboard {
+    let (src, dst) = sort(src, dst);
+    let dst_bb = Bitboard::one(dst);
+    let bishop_gt = unsafe { *BISHOP_GT.get_unchecked(src.index()) };
+    if (bishop_gt & dst_bb).is_nonempty() {
+        return bishop_gt & unsafe { *BISHOP_LT.get_unchecked(dst.index()) };
+    }
+    let rook_gt = unsafe { *ROOK_GT.get_unchecked(src.index()) };
+    if (rook_gt & dst_bb).is_nonempty() {
+        return rook_gt & unsafe { *ROOK_LT.get_unchecked(dst.index()) };
+    }
+    Bitboard::EMPTY
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

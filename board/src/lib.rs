@@ -16,4 +16,5 @@ mod zobrist;
 pub use bitboard::Bitboard;
 pub use board::{Board, RawBoard};
 pub use core::{CastlingRights, Cell, Color, File, Piece, Rank, Sq};
+pub use movegen::{MoveGen, MoveList, MovePush};
 pub use moves::{Move, MoveKind};

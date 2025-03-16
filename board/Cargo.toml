@@ -8,6 +8,7 @@ license.workspace = true
 [dependencies]
 pawnyowl_base = { path = "../base", version = "0.1.0" }
 thiserror = "2.0.11"
+arrayvec = "0.7.6"
 
 [build-dependencies]
 pawnyowl_base = { path = "../base", version = "0.1.0" }

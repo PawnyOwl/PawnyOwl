@@ -235,6 +235,16 @@ impl Board {
     }
 
     #[inline]
+    pub unsafe fn try_make_move_unchecked(&mut self, mv: Move) -> Option<RawUndo> {
+        let u = unsafe { moves::make_move_unchecked(self, mv) };
+        if self.is_opponent_king_attacked() {
+            unsafe { moves::unmake_move_unchecked(self, mv, u) };
+            return None;
+        }
+        Some(u)
+    }
+
+    #[inline]
     pub fn make_move(&mut self, mv: Move) -> Result<(), moves::ValidateError> {
         mv.validate(self)?;
         _ = unsafe { self.make_move_unchecked(mv) };
