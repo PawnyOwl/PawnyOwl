@@ -220,7 +220,6 @@ impl Board {
     }
 
     pub fn all(&self) -> Bitboard {
-        // TODO: measure if storing all separately is worth it.
         self.all_v
     }
 
