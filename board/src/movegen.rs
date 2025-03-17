@@ -117,6 +117,7 @@ pub struct MoveGenCtx {
 }
 
 impl From<&Board> for MoveGenCtx {
+    #[inline]
     fn from(b: &Board) -> Self {
         let king = b.king_pos(b.side());
         let king_attackers = b.checkers();
