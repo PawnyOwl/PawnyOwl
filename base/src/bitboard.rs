@@ -129,12 +129,8 @@ impl Bitboard {
     }
 
     #[inline]
-    pub const fn first(self) -> Option<Sq> {
-        if self.0 == 0 {
-            return None;
-        }
-        let bit = self.0.trailing_zeros();
-        unsafe { Some(Sq::from_index_unchecked(bit as usize)) }
+    pub fn first(self) -> Option<Sq> {
+        self.into_iter().next()
     }
 }
 
