@@ -16,5 +16,10 @@ rand_xoshiro = "0.7.0"
 rand_core = "0.9.3"
 
 [dev-dependencies]
+criterion = "0.5.1"
 sha2 = "0.10.8"
 hex-literal = "1.0.0"
+
+[[bench]]
+name = "chess"
+harness = false
