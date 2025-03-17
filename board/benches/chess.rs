@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use pawnyowl_board::{Board, MoveGen, MoveList, Color, Sq, movegen};
+use pawnyowl_board::{Board, MoveGen, MoveList, movegen::UncheckedMoveList, Color, Sq, movegen};
 use std::str::FromStr;
 
 const BOARDS: [(&str, &str); 10] = [
@@ -45,7 +45,7 @@ fn boards() -> impl Iterator<Item = (&'static str, Board)> {
 fn bench_gen_moves(c: &mut Criterion) {
     let mut group = c.benchmark_group("gen_moves");
     for (name, board) in boards() {
-        let mut moves = MoveList::new();
+        let mut moves = unsafe { UncheckedMoveList::<256>::new() };
         group.bench_function(name, |b| {
             b.iter(|| {
                 moves.clear();
@@ -66,7 +66,7 @@ fn bench_make_move(c: &mut Criterion) {
                 for mv in &moves {
                     unsafe {
                         let u = board.make_move_unchecked(*mv);
-                        board.unmake_move_unchecked(*mv, &u);
+                        board.unmake_move_unchecked(*mv, u);
                     }
                 }
             })

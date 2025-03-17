@@ -113,6 +113,7 @@ pub struct Move {
     kind: MoveKind,
     src: Sq,
     dst: Sq,
+    unused: u8,
 }
 
 #[derive(Debug, Clone, Error, Eq, PartialEq)]
@@ -152,6 +153,7 @@ impl From<PackedMove> for Move {
                 kind: MoveKind::from_index_unchecked(kind),
                 src: Sq::from_index_unchecked(src),
                 dst: Sq::from_index_unchecked(dst),
+                unused: 0,
             }
         }
     }
@@ -162,6 +164,7 @@ impl Move {
         kind: MoveKind::Null,
         src: Sq::from_index(0),
         dst: Sq::from_index(0),
+        unused: 0,
     };
 
     #[inline]
@@ -176,12 +179,13 @@ impl Move {
             kind: MoveKind::from(side),
             src,
             dst,
+            unused: 0,
         }
     }
 
     #[inline]
     pub const unsafe fn new_unchecked(kind: MoveKind, src: Sq, dst: Sq) -> Move {
-        Move { kind, src, dst }
+        Move { kind, src, dst, unused: 0 }
     }
 
     #[inline]
@@ -231,7 +235,7 @@ impl Move {
     }
 
     pub fn new(kind: MoveKind, src: Sq, dst: Sq) -> Result<Move, ValidateError> {
-        let mv = Move { kind, src, dst };
+        let mv = Move { kind, src, dst, unused: 0 };
         if !mv.is_well_formed() {
             return Err(ValidateError::NotWellFormed);
         }
@@ -344,7 +348,6 @@ pub struct RawUndo {
     move_counter: u16,
 }
 
-#[inline(always)]
 fn update_castling(b: &mut Board, change: Bitboard) {
     if (change & castling::ALL_SRCS).is_empty() {
         return;
@@ -562,7 +565,7 @@ pub(crate) unsafe fn make_move_unchecked(b: &mut Board, mv: Move) -> RawUndo {
 }
 
 #[inline(never)]
-fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: &RawUndo) {
+fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: RawUndo) {
     let c = C::COLOR;
     let src = Bitboard::one(mv.src);
     let dst = Bitboard::one(mv.dst);
@@ -606,7 +609,7 @@ fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: &RawUndo) {
             do_make_castling_queenside(b, c, true);
         }
         MoveKind::Null => {
-            // Do nothing
+            // Do nothing.
         }
         MoveKind::Enpassant => {
             do_make_enpassant(b, mv, change, c, true);
@@ -625,7 +628,7 @@ fn do_unmake_move<C: generic::Color>(b: &mut Board, mv: Move, u: &RawUndo) {
 }
 
 #[inline]
-pub(crate) unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: &RawUndo) {
+pub(crate) unsafe fn unmake_move_unchecked(b: &mut Board, mv: Move, u: RawUndo) {
     match b.r.side {
         Color::White => do_unmake_move::<generic::Black>(b, mv, u),
         Color::Black => do_unmake_move::<generic::White>(b, mv, u),
@@ -870,7 +873,7 @@ mod tests {
 
     #[test]
     fn test_size() {
-        assert_eq!(mem::size_of::<Move>(), 3);
+        assert_eq!(mem::size_of::<Move>(), 4);
         assert_eq!(mem::size_of::<PackedMove>(), 2);
     }
 
@@ -941,7 +944,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, &u) };
+            unsafe { unmake_move_unchecked(&mut b, m, u) };
             assert_eq!(b, b_copy);
         }
     }
@@ -975,7 +978,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, &u) };
+            unsafe { unmake_move_unchecked(&mut b, m, u) };
             assert_eq!(b, b_copy);
         }
     }
@@ -996,7 +999,7 @@ mod tests {
             let u = unsafe { make_move_unchecked(&mut b, m) };
             assert_eq!(b.to_string(), fen_str);
             assert_eq!(b.raw().try_into(), Ok(b.clone()));
-            unsafe { unmake_move_unchecked(&mut b, m, &u) };
+            unsafe { unmake_move_unchecked(&mut b, m, u) };
             assert_eq!(b, b_copy);
         }
     }

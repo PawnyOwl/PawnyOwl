@@ -119,8 +119,8 @@ pub struct Board {
     pub(crate) hash: u64,
     pub(crate) white: Bitboard,
     pub(crate) black: Bitboard,
-    pub(crate) cells: [Bitboard; Cell::COUNT],
     pub(crate) all_v: Bitboard,
+    pub(crate) cells: [Bitboard; Cell::COUNT],
 }
 
 impl Board {
@@ -193,7 +193,7 @@ impl Board {
 
     #[inline]
     pub fn king_pos(&self, c: Color) -> Sq {
-        self.piece(c, Piece::King).into_iter().next().unwrap()
+        self.piece(c, Piece::King).first().unwrap()
     }
 
     #[inline]
@@ -229,7 +229,7 @@ impl Board {
     }
 
     #[inline]
-    pub unsafe fn unmake_move_unchecked(&mut self, mv: Move, u: &RawUndo) {
+    pub unsafe fn unmake_move_unchecked(&mut self, mv: Move, u: RawUndo) {
         unsafe { moves::unmake_move_unchecked(self, mv, u) }
     }
 
@@ -237,7 +237,7 @@ impl Board {
     pub unsafe fn try_make_move_unchecked(&mut self, mv: Move) -> Option<RawUndo> {
         let u = unsafe { moves::make_move_unchecked(self, mv) };
         if self.is_opponent_king_attacked() {
-            unsafe { moves::unmake_move_unchecked(self, mv, &u) };
+            unsafe { moves::unmake_move_unchecked(self, mv, u) };
             return None;
         }
         Some(u)
@@ -365,9 +365,7 @@ impl TryFrom<RawBoard> for Board {
         const BAD_PAWN_POSES: Bitboard = Bitboard::from_raw(0xff000000000000ff);
         let bad_pawns = pawns & BAD_PAWN_POSES;
         if bad_pawns.is_nonempty() {
-            return Err(ValidateError::BadPawn(
-                bad_pawns.into_iter().next().unwrap(),
-            ));
+            return Err(ValidateError::BadPawn(bad_pawns.first().unwrap()));
         }
 
         // Check OpponentKingAttacked
@@ -376,8 +374,8 @@ impl TryFrom<RawBoard> for Board {
             hash: raw.zobrist_hash(),
             white,
             black,
-            cells,
             all_v: white | black,
+            cells,
         };
         if res.is_opponent_king_attacked() {
             return Err(ValidateError::OpponentKingAttacked);

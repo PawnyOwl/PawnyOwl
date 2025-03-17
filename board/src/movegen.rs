@@ -124,7 +124,7 @@ impl From<&Board> for MoveGenCtx {
         let (check, check_mask) = match king_attackers.len() {
             0 => (CheckKind::None, Bitboard::FULL),
             1 => {
-                let checker = king_attackers.into_iter().next().unwrap();
+                let checker = king_attackers.first().unwrap();
                 let check_mask = between::between(checker, king) | king_attackers;
                 (CheckKind::Single, check_mask)
             }

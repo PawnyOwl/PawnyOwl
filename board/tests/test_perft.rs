@@ -21,7 +21,7 @@ fn do_perft(b: &mut Board, depth: usize) -> u64 {
                 let u = unsafe { b.make_move_unchecked(mv) };
                 let res = do_perft(b, depth - 1);
                 unsafe {
-                    b.unmake_move_unchecked(mv, &u);
+                    b.unmake_move_unchecked(mv, u);
                 }
                 res
             })
@@ -47,7 +47,7 @@ fn do_hperft(b: &mut Board, depth: usize) -> u64 {
         let u = unsafe { b.make_move_unchecked(*mv) };
         result = result.wrapping_add(do_hperft(b, depth - 1));
         unsafe {
-            b.unmake_move_unchecked(*mv, &u);
+            b.unmake_move_unchecked(*mv, u);
         }
     }
     result

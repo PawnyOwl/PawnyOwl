@@ -127,6 +127,15 @@ impl Bitboard {
     pub const fn flipped_file(self) -> Self {
         Self(self.0.reverse_bits().swap_bytes())
     }
+
+    #[inline]
+    pub const fn first(self) -> Option<Sq> {
+        if self.0 == 0 {
+            return None;
+        }
+        let bit = self.0.trailing_zeros();
+        unsafe { Some(Sq::from_index_unchecked(bit as usize)) }
+    }
 }
 
 impl From<Bitboard> for u64 {

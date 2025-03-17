@@ -73,7 +73,7 @@ impl<'a, W: Write> Tester<'a, W> {
         for mv in moves {
             if let Some(u) = unsafe { board.try_make_move_unchecked(*mv) } {
                 result.push(mv.to_string());
-                unsafe { board.unmake_move_unchecked(*mv, &u) };
+                unsafe { board.unmake_move_unchecked(*mv, u) };
             }
         }
         result.sort();
@@ -151,7 +151,7 @@ impl<'a, W: Write> Tester<'a, W> {
                 }
                 ctx.grow_hash(val);
                 self.depth_dump(depth - 1, board, ctx);
-                unsafe { board.unmake_move_unchecked(mv, &u) };
+                unsafe { board.unmake_move_unchecked(mv, u) };
             }
             ctx.chain.truncate(old_len);
         }
@@ -218,7 +218,7 @@ impl<'a, W: Write> Tester<'a, W> {
             for mv in &moves {
                 if let Some(u) = unsafe { board.try_make_move_unchecked(*mv) } {
                     selftest::selftest(&board);
-                    unsafe { board.unmake_move_unchecked(*mv, &u) };
+                    unsafe { board.unmake_move_unchecked(*mv, u) };
                 }
             }
         }
