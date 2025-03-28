@@ -185,7 +185,12 @@ impl Move {
 
     #[inline]
     pub const unsafe fn new_unchecked(kind: MoveKind, src: Sq, dst: Sq) -> Move {
-        Move { kind, src, dst, unused: 0 }
+        Move {
+            kind,
+            src,
+            dst,
+            unused: 0,
+        }
     }
 
     #[inline]
@@ -235,7 +240,12 @@ impl Move {
     }
 
     pub fn new(kind: MoveKind, src: Sq, dst: Sq) -> Result<Move, ValidateError> {
-        let mv = Move { kind, src, dst, unused: 0 };
+        let mv = Move {
+            kind,
+            src,
+            dst,
+            unused: 0,
+        };
         if !mv.is_well_formed() {
             return Err(ValidateError::NotWellFormed);
         }
@@ -341,11 +351,11 @@ impl fmt::Display for Move {
 
 #[derive(Debug, Copy, Clone)]
 pub struct RawUndo {
-    hash: u64,
-    dst_cell: Cell,
-    castling: CastlingRights,
-    ep_src: Option<Sq>,
-    move_counter: u16,
+    pub hash: u64,
+    pub dst_cell: Cell,
+    pub castling: CastlingRights,
+    pub ep_src: Option<Sq>,
+    pub move_counter: u16,
 }
 
 fn update_castling(b: &mut Board, change: Bitboard) {

@@ -1,5 +1,5 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use pawnyowl_board::{Board, MoveGen, MoveList, movegen::UncheckedMoveList, Color, Sq, movegen};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use pawnyowl_board::{Board, Color, MoveGen, MoveList, Sq, movegen, movegen::UncheckedMoveList};
 use std::str::FromStr;
 
 const BOARDS: [(&str, &str); 10] = [
