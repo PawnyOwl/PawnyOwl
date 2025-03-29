@@ -1,5 +1,5 @@
 use pawnyowl_base::geometry;
-pub use pawnyowl_board::{Board, Move};
+use pawnyowl_board::{Board, Move, Piece, File};
 use pawnyowl_board::{Cell, MoveKind, Sq};
 
 use crate::{layers::feature::FeatureSlice, model::Model, score::Score};
@@ -53,22 +53,23 @@ impl<'a> EvalBoard<'a> {
 
         match mv.kind() {
             MoveKind::Simple => {
-                basic_update(self.board.get(mv.dst()), board_undo.dst_cell, mv);
+                let src_cell = self.board.get(mv.dst());
+                basic_update(src_cell, board_undo.dst_cell(), mv);
                 self.model.update(
                     &mut self.feature_slice,
-                    self.board.get(mv.dst()),
+                    src_cell,
                     mv.dst(),
                     1,
                 );
             }
             MoveKind::PawnSimple => {
-                let pawn = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Pawn);
-                basic_update(pawn, board_undo.dst_cell, mv);
+                let pawn = Cell::make(self.board.side().inv(), Piece::Pawn);
+                basic_update(pawn, board_undo.dst_cell(), mv);
                 self.model
                     .update(&mut self.feature_slice, pawn, mv.dst(), 1);
             }
             MoveKind::PawnDouble => {
-                let pawn = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Pawn);
+                let pawn = Cell::make(self.board.side().inv(), Piece::Pawn);
                 basic_update(pawn, Cell::None, mv);
                 self.model
                     .update(&mut self.feature_slice, pawn, mv.dst(), 1);
@@ -77,8 +78,8 @@ impl<'a> EvalBoard<'a> {
             | MoveKind::PromoteBishop
             | MoveKind::PromoteRook
             | MoveKind::PromoteQueen => {
-                let pawn = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Pawn);
-                basic_update(pawn, board_undo.dst_cell, mv);
+                let pawn = Cell::make(self.board.side().inv(), Piece::Pawn);
+                basic_update(pawn, board_undo.dst_cell(), mv);
                 self.model.update(
                     &mut self.feature_slice,
                     self.board.get(mv.dst()),
@@ -87,60 +88,62 @@ impl<'a> EvalBoard<'a> {
                 );
             }
             MoveKind::CastlingKingside => {
-                let king = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::King);
-                let rook = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Rook);
+                let c = self.board.side().inv();
+                let king = Cell::make(c, Piece::King);
+                let rook = Cell::make(c, Piece::Rook);
                 let rank = geometry::castling_rank(self.board.side().inv());
                 self.model.update(
                     &mut self.feature_slice,
                     king,
-                    Sq::make(pawnyowl_board::File::E, rank),
+                    Sq::make(File::E, rank),
                     -1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     king,
-                    Sq::make(pawnyowl_board::File::G, rank),
+                    Sq::make(File::G, rank),
                     1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     rook,
-                    Sq::make(pawnyowl_board::File::H, rank),
+                    Sq::make(File::H, rank),
                     -1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     rook,
-                    Sq::make(pawnyowl_board::File::F, rank),
+                    Sq::make(File::F, rank),
                     1,
                 );
             }
             MoveKind::CastlingQueenside => {
-                let king = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::King);
-                let rook = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Rook);
+                let c = self.board.side().inv();
+                let king = Cell::make(c, Piece::King);
+                let rook = Cell::make(c, Piece::Rook);
                 let rank = geometry::castling_rank(self.board.side().inv());
                 self.model.update(
                     &mut self.feature_slice,
                     king,
-                    Sq::make(pawnyowl_board::File::E, rank),
+                    Sq::make(File::E, rank),
                     -1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     king,
-                    Sq::make(pawnyowl_board::File::C, rank),
+                    Sq::make(File::C, rank),
                     1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     rook,
-                    Sq::make(pawnyowl_board::File::A, rank),
+                    Sq::make(File::A, rank),
                     -1,
                 );
                 self.model.update(
                     &mut self.feature_slice,
                     rook,
-                    Sq::make(pawnyowl_board::File::D, rank),
+                    Sq::make(File::D, rank),
                     1,
                 );
             }
@@ -148,17 +151,19 @@ impl<'a> EvalBoard<'a> {
                 // Do nothing.
             }
             MoveKind::Enpassant => {
-                let pawn = Cell::make(self.board.side().inv(), pawnyowl_board::Piece::Pawn);
+                let c = self.board.side().inv();
+                let c_inv = c.inv();
+                let pawn = Cell::make(c, Piece::Pawn);
                 basic_update(pawn, Cell::None, mv);
                 self.model
                     .update(&mut self.feature_slice, pawn, mv.dst(), 1);
-                let enemy_pawn = Cell::make(self.board.side(), pawnyowl_board::Piece::Pawn);
+                let enemy_pawn = Cell::make(c_inv, Piece::Pawn);
                 self.model.update(
                     &mut self.feature_slice,
                     enemy_pawn,
                     unsafe {
                         mv.dst()
-                            .add_unchecked(geometry::pawn_forward_delta(self.board.side()))
+                            .add_unchecked(geometry::pawn_forward_delta(c_inv))
                     },
                     1,
                 );
