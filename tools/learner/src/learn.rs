@@ -75,7 +75,7 @@ fn split_lines(items: Vec<String>) -> (Vec<String>, Vec<String>) {
 struct TrainingConfig {
     pub model: ModelConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 1)]
+    #[config(default = 128)]
     pub num_epochs: usize,
     #[config(default = 32768)]
     pub batch_size: usize,
