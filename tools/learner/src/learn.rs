@@ -75,7 +75,7 @@ fn split_lines(items: Vec<String>) -> (Vec<String>, Vec<String>) {
 struct TrainingConfig {
     pub model: ModelConfig,
     pub optimizer: AdamConfig,
-    #[config(default = 128)]
+    #[config(default = 1)]
     pub num_epochs: usize,
     #[config(default = 32768)]
     pub batch_size: usize,
@@ -200,8 +200,10 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, device: B::Device) {
     let _model_trained = learner.fit(dataloader_train, dataloader_valid);
     let weights = get_layer_weights(&_model_trained.linear);
 
-    let o_pawn = median(&mut weights[8..=56][0].to_vec());
-    let e_pawn = median(&mut weights[8..=56][1].to_vec());
+    let mut o_pawn_weights: Vec<f32> = weights[8..=55].iter().map(|row| row[0]).collect();
+    let mut e_pawn_weights: Vec<f32> = weights[8..=55].iter().map(|row| row[1]).collect();
+    let o_pawn = median(o_pawn_weights.as_mut_slice());
+    let e_pawn = median(e_pawn_weights.as_mut_slice());
 
     let weights: Vec<Vec<f32>> = weights
         .iter()
@@ -215,7 +217,7 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, device: B::Device) {
         })
         .collect();
 
-    println!("{:?}", weights);
+    println!("{:?}", weights.to_vec());
     println!("{:?} {:?}", o_pawn, e_pawn);
 }
 
