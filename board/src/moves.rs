@@ -185,7 +185,12 @@ impl Move {
 
     #[inline]
     pub const unsafe fn new_unchecked(kind: MoveKind, src: Sq, dst: Sq) -> Move {
-        Move { kind, src, dst, unused: 0 }
+        Move {
+            kind,
+            src,
+            dst,
+            unused: 0,
+        }
     }
 
     #[inline]
@@ -235,7 +240,12 @@ impl Move {
     }
 
     pub fn new(kind: MoveKind, src: Sq, dst: Sq) -> Result<Move, ValidateError> {
-        let mv = Move { kind, src, dst, unused: 0 };
+        let mv = Move {
+            kind,
+            src,
+            dst,
+            unused: 0,
+        };
         if !mv.is_well_formed() {
             return Err(ValidateError::NotWellFormed);
         }
