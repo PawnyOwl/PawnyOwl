@@ -14,5 +14,5 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    learn_model(&args.dataset, &args.artifact);
+    learn_model(&args.dataset, &args.artifact, &args.model);
 }

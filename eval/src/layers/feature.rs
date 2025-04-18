@@ -68,6 +68,10 @@ impl FeatureLayer {
     pub const STAGE_WEIGHTS: [Stage; Cell::COUNT] = [0, 0, 0, 1, 1, 2, 4, 0, 0, 1, 1, 2, 4];
     pub const INIT_STAGE: Stage = 24;
     #[inline]
+    pub fn new(weights: [ScorePair; 64 * Cell::COUNT]) -> Self {
+        Self { weights }
+    }
+    #[inline]
     pub fn input_index(cell: Cell, sq: Sq) -> usize {
         cell.index() * 64 + sq.index()
     }

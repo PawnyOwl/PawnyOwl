@@ -15,9 +15,14 @@ pub struct Model {
 }
 
 impl Model {
+    #[inline]
     pub fn new() -> Result<Self> {
         let bytes = include_bytes!("../../incbin/model.paw");
         Ok(bincode::deserialize(bytes)?)
+    }
+    #[inline]
+    pub fn from_layers(feature_layer: FeatureLayer) -> Self {
+        Self { feature_layer }
     }
     #[inline]
     pub fn init(&self, feature_slice: &mut FeatureSlice) {

@@ -23,8 +23,8 @@ impl GameResult {
     }
 }
 
-fn split_last_space(s: &str) -> (String, String) {
-    if let Some(last_space) = s.rfind(' ') {
+fn split_last_comma(s: &str) -> (String, String) {
+    if let Some(last_space) = s.rfind(',') {
         let (before, after) = s.split_at(last_space);
         (before.to_string(), after[1..].to_string())
     } else {
@@ -34,9 +34,9 @@ fn split_last_space(s: &str) -> (String, String) {
 
 fn parse_result(s: &str) -> GameResult {
     match s {
-        "\"1-0\";" => GameResult::WhiteWins,
-        "\"1/2-1/2\";" => GameResult::Draw,
-        "\"0-1\";" => GameResult::BlackWins,
+        "1" => GameResult::WhiteWins,
+        "0.5" => GameResult::Draw,
+        "0" => GameResult::BlackWins,
         _ => panic!("Unknown game result"),
     }
 }
@@ -62,14 +62,11 @@ pub struct BoardBatch<B: Backend> {
 impl<B: Backend> Batcher<String, BoardBatch<B>> for BoardBatcher<B> {
     fn batch(&self, items: Vec<String>) -> BoardBatch<B> {
         let parse_items = |line: &String| {
-            let (fen, result) = split_last_space(line);
-            let mut fen = fen;
-            fen.truncate(fen.len() - 2);
-            fen.push_str("0 1");
+            let (fen, result) = split_last_comma(line);
             let board = match Board::from_str(&fen) {
                 Ok(board) => board,
                 Err(e) => {
-                    panic!("{:?}", e);
+                    panic!("{:?}, {}", e, fen);
                 }
             };
 

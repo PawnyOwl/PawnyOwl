@@ -22,6 +22,12 @@ use burn::{
     train::LearnerBuilder,
 };
 use burn_ndarray::NdArrayDevice;
+use pawnyowl_board::{Cell, Color, Sq};
+use pawnyowl_eval::layers::feature::{FeatureLayer, ScorePair};
+use pawnyowl_eval::score::Score;
+use rand::SeedableRng;
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
 
 use crate::dataset::{BoardBatch, BoardBatcher};
 
@@ -56,16 +62,19 @@ impl Dataset<String> for MainDataset {
     }
 }
 
-fn read_lines(filename: &str) -> Result<Vec<String>, std::io::Error> {
+fn read_lines(filename: &str, seed: u64) -> Result<Vec<String>, std::io::Error> {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
-    reader.lines().collect()
+    let mut res: Vec<String> = reader.lines().skip(1).collect::<Result<_, _>>()?;
+    let mut rng = StdRng::from_seed([seed as u8; 32]);
+    res.shuffle(&mut rng);
+    Ok(res)
 }
 
 fn split_lines(items: Vec<String>) -> (Vec<String>, Vec<String>) {
     let mut items = items;
 
-    let split_at = items.len() * 99 / 100;
+    let split_at = items.len() * 90 / 100;
     let second = items.split_off(split_at);
 
     (items, second)
@@ -77,13 +86,13 @@ struct TrainingConfig {
     pub optimizer: AdamConfig,
     #[config(default = 128)]
     pub num_epochs: usize,
-    #[config(default = 32768)]
+    #[config(default = 65536)]
     pub batch_size: usize,
     #[config(default = 4)]
     pub num_workers: usize,
     #[config(default = 42)]
     pub seed: u64,
-    #[config(default = 1.0e-2)]
+    #[config(default = 1.0e-3)]
     pub learning_rate: f64,
 }
 
@@ -151,8 +160,10 @@ impl<B: Backend> Model<B> {
     }
 }
 
-fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, device: B::Device) {
-    let lines = match read_lines(dataset) {
+fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, device: B::Device) {
+    let config = TrainingConfig::new(ModelConfig { _unused: false }, AdamConfig::new());
+
+    let lines = match read_lines(dataset, config.seed) {
         Ok(lines) => {
             println!("Dataset loaded: {} items", lines.len());
             Ok(lines)
@@ -170,8 +181,6 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, device: B::Device) {
 
     let batcher_train = BoardBatcher::<B>::new(device.clone());
     let batcher_valid = BoardBatcher::<B::InnerBackend>::new(device.clone());
-
-    let config = TrainingConfig::new(ModelConfig { _unused: false }, AdamConfig::new());
 
     let dataloader_train = DataLoaderBuilder::new(batcher_train)
         .batch_size(config.batch_size)
@@ -217,15 +226,47 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, device: B::Device) {
         })
         .collect();
 
-    println!("{:?}", weights.to_vec());
-    println!("{:?} {:?}", o_pawn, e_pawn);
+    println!("Weights in Quirky format:");
+    for i in 0..384 {
+        print!(
+            "ScorePair({}, {}),",
+            weights[i ^ 56][0].round(),
+            weights[i ^ 56][1].round()
+        )
+    }
+    println!();
+
+    let mut feature_layer_weights: [ScorePair; 64 * Cell::COUNT] =
+        [ScorePair::new(Score::new(0), Score::new(0)); 64 * Cell::COUNT];
+    for cell in Cell::iter() {
+        for sq in Sq::iter() {
+            if cell == Cell::None {
+                continue;
+            }
+            let weight_pair = match cell.color().unwrap() {
+                Color::White => weights[cell.piece().unwrap().index() * 64 + sq.index()].clone(),
+                Color::Black => {
+                    weights[cell.piece().unwrap().index() * 64 + sq.flipped_rank().index()].clone()
+                }
+            };
+            let score = ScorePair::new(
+                Score::new(weight_pair[0].round() as i16),
+                Score::new(weight_pair[1].round() as i16),
+            );
+            feature_layer_weights[FeatureLayer::input_index(cell, sq)] = score;
+        }
+    }
+
+    let model: pawnyowl_eval::model::Model =
+        pawnyowl_eval::model::Model::from_layers(FeatureLayer::new(feature_layer_weights));
+    let _ = model.store(model_path);
 }
 
-pub fn learn_model(dataset: &str, artifact: &str) {
+pub fn learn_model(dataset: &str, artifact: &str, model_path: &str) {
     type Backend = NdArray<f32>;
     type AutodiffBackend = Autodiff<Backend>;
     let device = NdArrayDevice::Cpu;
-    train::<AutodiffBackend>(dataset, artifact, device);
+    train::<AutodiffBackend>(dataset, artifact, model_path, device);
 }
 
 fn median(numbers: &mut [f32]) -> f32 {
