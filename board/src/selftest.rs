@@ -1,5 +1,6 @@
 use crate::board::Board;
-use crate::core::Sq;
+use crate::core::{Cell, Sq};
+use crate::diff::{self, DiffListener};
 use crate::movegen::{MoveGen, MoveList};
 use crate::moves::{Move, MoveKind, PackedMove, ValidateError};
 use std::str::FromStr;
@@ -40,6 +41,17 @@ fn filter_legal_moves(b: &Board, l: &mut MoveList) {
             Err(ValidateError::NotWellFormed) => unreachable!(),
         }
     });
+}
+
+#[derive(Clone)]
+struct SquareDiffListener([Cell; 64]);
+
+impl DiffListener for SquareDiffListener {
+    fn upd(&mut self, sq: Sq, old: Cell, new: Cell) {
+        let cell = unsafe { self.0.get_unchecked_mut(sq.index()) };
+        assert_eq!(*cell, old);
+        *cell = new;
+    }
 }
 
 pub fn selftest(b: &Board) {
@@ -124,6 +136,16 @@ pub fn selftest(b: &Board) {
     // Check that packing moves works correctly.
     for m in &semilegals {
         assert_eq!(Move::from(PackedMove::from(*m)), *m);
+    }
+
+    // Check that `diff::after_move()` works correctly.
+    let squares = SquareDiffListener(b.r.squares);
+    for m in &semilegals {
+        let mut squares = squares.clone();
+        let u = unsafe { b_clone.make_move_unchecked(*m) };
+        unsafe { diff::after_move(&b_clone, *m, &u, &mut squares) };
+        assert_eq!(squares.0, b_clone.r.squares);
+        unsafe { b_clone.unmake_move_unchecked(*m, u) };
     }
 }
 

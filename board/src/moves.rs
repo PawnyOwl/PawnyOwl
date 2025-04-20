@@ -1,6 +1,7 @@
 use crate::bitboard::Bitboard;
 use crate::board::Board;
 use crate::core::{CastlingRights, CastlingSide, Cell, Color, File, Piece, Rank, Sq, SqParseError};
+use crate::diff::DiffListener;
 use crate::{attack, between, castling, generic, geometry, movegen, pawns, zobrist};
 use std::str::FromStr;
 use std::{fmt, hint};
@@ -872,6 +873,73 @@ impl UciMove {
                 Move::new(kind, src, dst)
             }
         }
+    }
+}
+
+#[inline(never)]
+fn do_diff_after_move<C: generic::Color>(
+    b: &Board,
+    mv: Move,
+    u: &RawUndo,
+    l: &mut (impl DiffListener + ?Sized),
+) {
+    let c = C::COLOR;
+    let src_cell = b.get(mv.dst);
+    match mv.kind {
+        MoveKind::Simple | MoveKind::PawnSimple | MoveKind::PawnDouble => {
+            l.del(mv.src, src_cell);
+            l.upd(mv.dst, u.dst_cell, src_cell);
+        }
+        MoveKind::PromoteKnight
+        | MoveKind::PromoteBishop
+        | MoveKind::PromoteRook
+        | MoveKind::PromoteQueen => {
+            let pawn = Cell::make(c, Piece::Pawn);
+            l.del(mv.src, pawn);
+            l.upd(mv.dst, u.dst_cell, src_cell);
+        }
+        MoveKind::CastlingKingside => {
+            let king = Cell::make(c, Piece::King);
+            let rook = Cell::make(c, Piece::Rook);
+            let rank = geometry::castling_rank(c);
+            l.del(Sq::make(File::E, rank), king);
+            l.add(Sq::make(File::F, rank), rook);
+            l.add(Sq::make(File::G, rank), king);
+            l.del(Sq::make(File::H, rank), rook);
+        }
+        MoveKind::CastlingQueenside => {
+            let king = Cell::make(c, Piece::King);
+            let rook = Cell::make(c, Piece::Rook);
+            let rank = geometry::castling_rank(c);
+            l.del(Sq::make(File::E, rank), king);
+            l.add(Sq::make(File::D, rank), rook);
+            l.add(Sq::make(File::C, rank), king);
+            l.del(Sq::make(File::A, rank), rook);
+        }
+        MoveKind::Enpassant => {
+            let tmp = unsafe { mv.dst.add_unchecked(-geometry::pawn_forward_delta(c)) };
+            let our_pawn = Cell::make(c, Piece::Pawn);
+            let their_pawn = Cell::make(c.inv(), Piece::Pawn);
+            l.del(mv.src, our_pawn);
+            l.del(tmp, their_pawn);
+            l.add(mv.dst, our_pawn);
+        }
+        MoveKind::Null => {
+            // Do nothing.
+        }
+    }
+}
+
+#[inline]
+pub(crate) unsafe fn diff_after_move(
+    b: &Board,
+    mv: Move,
+    u: &RawUndo,
+    l: &mut (impl DiffListener + ?Sized),
+) {
+    match b.r.side {
+        Color::White => do_diff_after_move::<generic::Black>(b, mv, u, l),
+        Color::Black => do_diff_after_move::<generic::White>(b, mv, u, l),
     }
 }
 
