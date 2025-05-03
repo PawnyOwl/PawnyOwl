@@ -1,5 +1,5 @@
-use crate::dataset::{BoardBatch, BoardBatcher};
-use anyhow::Result;
+use crate::dataset::{BoardBatch, BoardBatcher, BoardItem, GameResult};
+use anyhow::{bail, Result};
 use burn::backend::Autodiff;
 use burn::backend::ndarray::NdArray;
 use burn::data::dataloader::DataLoaderBuilder;
@@ -21,27 +21,28 @@ use burn::{
     train::LearnerBuilder,
 };
 use burn_ndarray::NdArrayDevice;
-use pawnyowl_board::{Cell, Color, Sq};
+use pawnyowl_board::{Board, Cell, Color, Sq};
 use pawnyowl_eval::layers::feature::{PSQFeatureLayer, ScorePair};
 use pawnyowl_eval::score::Score;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use std::io::BufReader;
+use std::str::FromStr;
 use std::{fs::File, io::BufRead};
 
 struct MainDataset {
-    items: Vec<String>,
+    items: Vec<BoardItem>,
 }
 
 impl MainDataset {
-    pub fn new(items: Vec<String>) -> Self {
+    pub fn new(items: Vec<BoardItem>) -> Self {
         Self { items }
     }
 }
 
-impl Dataset<String> for MainDataset {
-    fn get(&self, index: usize) -> Option<String> {
+impl Dataset<BoardItem> for MainDataset {
+    fn get(&self, index: usize) -> Option<BoardItem> {
         self.items.get(index).cloned()
     }
 
@@ -53,30 +54,12 @@ impl Dataset<String> for MainDataset {
         self.len() == 0
     }
 
-    fn iter(&self) -> DatasetIterator<'_, String>
+    fn iter(&self) -> DatasetIterator<'_, BoardItem>
     where
         Self: Sized,
     {
         DatasetIterator::new(self)
     }
-}
-
-fn read_lines(filename: &str, seed: u64) -> Result<Vec<String>> {
-    let file = File::open(filename)?;
-    let reader = BufReader::new(file);
-    let mut res: Vec<String> = reader.lines().skip(1).collect::<Result<_, _>>()?;
-    let mut rng = StdRng::from_seed([seed as u8; 32]);
-    res.shuffle(&mut rng);
-    Ok(res)
-}
-
-fn split_lines(items: Vec<String>) -> (Vec<String>, Vec<String>) {
-    let mut items = items;
-
-    let split_at = items.len() * 90 / 100;
-    let second = items.split_off(split_at);
-
-    (items, second)
 }
 
 #[derive(Config)]
@@ -87,6 +70,8 @@ struct TrainingConfig {
     pub num_epochs: usize,
     #[config(default = 65536)]
     pub batch_size: usize,
+    #[config(default = 0.9)]
+    pub train_ratio: f64,
     #[config(default = 4)]
     pub num_workers: usize,
     #[config(default = 42)]
@@ -157,6 +142,63 @@ impl<B: Backend> Model<B> {
     }
 }
 
+fn split_last_comma(s: &str) -> (&str, &str) {
+    if let Some(last_comma) = s.rfind(',') {
+        let (before, after) = s.split_at(last_comma);
+        (before, &after[1..])
+    } else {
+        ("", s)
+    }
+}
+
+fn parse_result(s: &str) -> Result<GameResult> {
+    match s {
+        "1" => Ok(GameResult::WhiteWins),
+        "0.5" => Ok(GameResult::Draw),
+        "0" => Ok(GameResult::BlackWins),
+        _ => bail!("unknown result"),
+    }
+}
+
+fn read_lines(filename: &str, seed: u64) -> Result<Vec<BoardItem>> {
+    let file = File::open(filename)?;
+    let reader = BufReader::new(file);
+    let fens: Vec<String> = reader.lines().skip(1).collect::<Result<_, _>>()?;
+    let parse_fens = |line: &String| -> Result<_> {
+        let (fen, result) = split_last_comma(line);
+        let board = Board::from_str(fen)?;
+
+        let mut features = [0_i8; 64 * 6];
+        let mut stage = 0;
+        for sq in Sq::iter() {
+            let cell = board.get(sq);
+            if let Some(c) = cell.color() {
+                if c == Color::White {
+                    features[cell.piece().unwrap().index() * 64 + sq.index()] += 1;
+                } else {
+                    features[cell.piece().unwrap().index() * 64 + sq.flipped_rank().index()] -= 1;
+                }
+                stage += PSQFeatureLayer::STAGE_WEIGHTS[cell.index()];
+            }
+        }
+        let target = parse_result(result)?.target();
+        Ok(BoardItem { features, stage, target })
+    };
+    let mut items = fens.iter().map(parse_fens).collect::<Result<Vec<_>>>()?;
+    let mut rng = StdRng::seed_from_u64(seed);
+    items.shuffle(&mut rng);
+    Ok(items)
+}
+
+fn split_lines(items: Vec<BoardItem>, ratio: f64) -> (Vec<BoardItem>, Vec<BoardItem>) {
+    let mut items = items;
+
+    let split_at = (items.len() as f64 * ratio).round() as usize;
+    let second = items.split_off(split_at);
+
+    (items, second)
+}
+
 fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, device: B::Device) {
     let config = TrainingConfig::new(ModelConfig {}, AdamConfig::new());
 
@@ -172,9 +214,9 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, de
     }
     .unwrap();
 
-    let (lines_train, lines_valid) = split_lines(lines);
-    let train_dataset = MainDataset::new(lines_train);
-    let valid_dataset = MainDataset::new(lines_valid);
+    let (items_train, items_valid) = split_lines(lines, config.train_ratio);
+    let train_dataset = MainDataset::new(items_train);
+    let valid_dataset = MainDataset::new(items_valid);
 
     let batcher_train = BoardBatcher::<B>::new(device.clone());
     let batcher_valid = BoardBatcher::<B::InnerBackend>::new(device.clone());
