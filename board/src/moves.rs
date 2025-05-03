@@ -359,13 +359,6 @@ pub struct RawUndo {
     move_counter: u16,
 }
 
-impl RawUndo {
-    #[inline]
-    pub fn dst_cell(&self) -> Cell {
-        self.dst_cell
-    }
-}
-
 fn update_castling(b: &mut Board, change: Bitboard) {
     if (change & castling::ALL_SRCS).is_empty() {
         return;
