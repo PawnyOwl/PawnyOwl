@@ -3,6 +3,7 @@
 pub use pawnyowl_base::{bitboard, core, geometry};
 
 pub mod board;
+pub mod diff;
 pub mod movegen;
 pub mod moves;
 pub mod selftest;
