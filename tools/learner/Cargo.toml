@@ -1,20 +1,16 @@
 [package]
-name = "learner"
+name = "pawnyowl_learner"
 edition.workspace = true
 version.workspace = true
 repository.workspace = true
 license.workspace = true
 
 [dependencies]
-burn = { version = "0.16", features = ["train", "ndarray"] }
-burn-autodiff = "0.16"
-burn-ndarray = "0.16"
-bincode = "=2.0.0-rc.3"
-bincode_derive = "=2.0.0-rc.3"
+anyhow = "1.0.98"
+burn = { version = "0.16.1", features = ["train", "ndarray"] }
+burn-ndarray = "0.16.1"
 clap = { version = "4.0", features = ["derive"] }
-pawnyowl_base = { path = "../../base", version = "0.1.0" }
 pawnyowl_board = { path = "../../board", version = "0.1.0" }
 pawnyowl_eval = { path = "../../eval", version = "0.1.0" }
-order-stat = "0.1.3"
 rand = "0.8"
 itertools = "0.14.0"

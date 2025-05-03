@@ -19,6 +19,6 @@ pub trait DiffListener {
 }
 
 #[inline]
-pub unsafe fn after_move(b: &Board, mv: Move, u: &RawUndo, l: &mut (impl DiffListener + ?Sized)) {
+pub unsafe fn after_move(b: &Board, mv: Move, u: &RawUndo, l: impl DiffListener) {
     unsafe { moves::diff_after_move(b, mv, u, l) }
 }

@@ -1,10 +1,9 @@
+use crate::score::{Score, Stage};
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use pawnyowl_board::{Cell, Sq};
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 use std::{cmp::Ord, ops::Mul};
-
-use crate::score::{Score, Stage};
-use pawnyowl_board::{Cell, Sq};
 
 #[derive(
     Debug,
@@ -53,18 +52,18 @@ impl Mul<i32> for ScorePair {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct FeatureSlice {
+pub struct PSQFeatureSlice {
     pub score: ScorePair,
     pub stage: Stage,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct FeatureLayer {
+#[derive(Serialize, Deserialize, Clone)]
+pub struct PSQFeatureLayer {
     #[serde(with = "BigArray")]
     weights: [ScorePair; 64 * Cell::COUNT],
 }
 
-impl FeatureLayer {
+impl PSQFeatureLayer {
     pub const STAGE_WEIGHTS: [Stage; Cell::COUNT] = [0, 0, 0, 1, 1, 2, 4, 0, 0, 1, 1, 2, 4];
     pub const INIT_STAGE: Stage = 24;
     #[inline]
@@ -76,14 +75,16 @@ impl FeatureLayer {
         cell.index() * 64 + sq.index()
     }
     #[inline]
-    pub fn init_feature_slice(&self, features: &mut FeatureSlice) {
-        features.score = ScorePair(0);
-        features.stage = 0;
+    pub fn init_feature_slice(&self) -> PSQFeatureSlice {
+        PSQFeatureSlice {
+            score: ScorePair(0),
+            stage: 0,
+        }
     }
     #[inline]
     pub fn update_feature_slice(
         &self,
-        features: &mut FeatureSlice,
+        features: &mut PSQFeatureSlice,
         cell: Cell,
         sq: Sq,
         delta: i32,

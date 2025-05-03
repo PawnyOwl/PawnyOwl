@@ -1,10 +1,9 @@
-use std::io::BufReader;
-use std::{fs::File, io::BufRead};
-
+use crate::dataset::{BoardBatch, BoardBatcher};
+use anyhow::Result;
 use burn::backend::Autodiff;
 use burn::backend::ndarray::NdArray;
 use burn::data::dataloader::DataLoaderBuilder;
-use burn::data::dataset::Dataset;
+use burn::data::dataset::{Dataset, DatasetIterator};
 use burn::nn::Sigmoid;
 use burn::nn::loss::MseLoss;
 use burn::optim::AdamConfig;
@@ -23,13 +22,13 @@ use burn::{
 };
 use burn_ndarray::NdArrayDevice;
 use pawnyowl_board::{Cell, Color, Sq};
-use pawnyowl_eval::layers::feature::{FeatureLayer, ScorePair};
+use pawnyowl_eval::layers::feature::{PSQFeatureLayer, ScorePair};
 use pawnyowl_eval::score::Score;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
-
-use crate::dataset::{BoardBatch, BoardBatcher};
+use std::io::BufReader;
+use std::{fs::File, io::BufRead};
 
 struct MainDataset {
     items: Vec<String>,
@@ -54,15 +53,15 @@ impl Dataset<String> for MainDataset {
         self.len() == 0
     }
 
-    fn iter(&self) -> burn::data::dataset::DatasetIterator<'_, String>
+    fn iter(&self) -> DatasetIterator<'_, String>
     where
         Self: Sized,
     {
-        burn::data::dataset::DatasetIterator::new(self)
+        DatasetIterator::new(self)
     }
 }
 
-fn read_lines(filename: &str, seed: u64) -> Result<Vec<String>, std::io::Error> {
+fn read_lines(filename: &str, seed: u64) -> Result<Vec<String>> {
     let file = File::open(filename)?;
     let reader = BufReader::new(file);
     let mut res: Vec<String> = reader.lines().skip(1).collect::<Result<_, _>>()?;
@@ -103,9 +102,7 @@ struct Model<B: Backend> {
 }
 
 #[derive(Config, Debug)]
-struct ModelConfig {
-    _unused: bool,
-}
+struct ModelConfig {}
 
 impl ModelConfig {
     pub fn init<B: Backend>(&self, device: &B::Device) -> Model<B> {
@@ -161,7 +158,7 @@ impl<B: Backend> Model<B> {
 }
 
 fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, device: B::Device) {
-    let config = TrainingConfig::new(ModelConfig { _unused: false }, AdamConfig::new());
+    let config = TrainingConfig::new(ModelConfig {}, AdamConfig::new());
 
     let lines = match read_lines(dataset, config.seed) {
         Ok(lines) => {
@@ -206,8 +203,8 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, de
             config.learning_rate,
         );
 
-    let _model_trained = learner.fit(dataloader_train, dataloader_valid);
-    let weights = get_layer_weights(&_model_trained.linear);
+    let model_trained = learner.fit(dataloader_train, dataloader_valid);
+    let weights = get_layer_weights(&model_trained.linear);
 
     let mut o_pawn_weights: Vec<f32> = weights[8..=55].iter().map(|row| row[0]).collect();
     let mut e_pawn_weights: Vec<f32> = weights[8..=55].iter().map(|row| row[1]).collect();
@@ -253,13 +250,13 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, de
                 Score::new(weight_pair[0].round() as i16),
                 Score::new(weight_pair[1].round() as i16),
             );
-            feature_layer_weights[FeatureLayer::input_index(cell, sq)] = score;
+            feature_layer_weights[PSQFeatureLayer::input_index(cell, sq)] = score;
         }
     }
 
-    let model: pawnyowl_eval::model::Model =
-        pawnyowl_eval::model::Model::from_layers(FeatureLayer::new(feature_layer_weights));
-    let _ = model.store(model_path);
+    let model =
+        pawnyowl_eval::model::PSQModel::from_layers(PSQFeatureLayer::new(feature_layer_weights));
+    model.store(model_path).unwrap();
 }
 
 pub fn learn_model(dataset: &str, artifact: &str, model_path: &str) {

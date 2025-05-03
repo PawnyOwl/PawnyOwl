@@ -1,11 +1,8 @@
-use std::str::FromStr;
-
-use itertools::multiunzip;
-
+use anyhow::{Result, bail};
 use burn::{data::dataloader::batcher::Batcher, prelude::*};
-
-use pawnyowl_board::{Cell, Color, Sq};
-use pawnyowl_eval::{Board, layers::feature::FeatureLayer};
+use pawnyowl_board::{Board, Color, Sq};
+use pawnyowl_eval::layers::feature::PSQFeatureLayer;
+use std::str::FromStr;
 
 pub enum GameResult {
     WhiteWins,
@@ -23,21 +20,21 @@ impl GameResult {
     }
 }
 
-fn split_last_comma(s: &str) -> (String, String) {
-    if let Some(last_space) = s.rfind(',') {
-        let (before, after) = s.split_at(last_space);
-        (before.to_string(), after[1..].to_string())
+fn split_last_comma(s: &str) -> (&str, &str) {
+    if let Some(last_comma) = s.rfind(',') {
+        let (before, after) = s.split_at(last_comma);
+        (before, &after[1..])
     } else {
-        (String::new(), s.to_string())
+        ("", s)
     }
 }
 
-fn parse_result(s: &str) -> GameResult {
+fn parse_result(s: &str) -> Result<GameResult> {
     match s {
-        "1" => GameResult::WhiteWins,
-        "0.5" => GameResult::Draw,
-        "0" => GameResult::BlackWins,
-        _ => panic!("Unknown game result"),
+        "1" => Ok(GameResult::WhiteWins),
+        "0.5" => Ok(GameResult::Draw),
+        "0" => Ok(GameResult::BlackWins),
+        _ => bail!("unknown result"),
     }
 }
 
@@ -63,7 +60,7 @@ impl<B: Backend> Batcher<String, BoardBatch<B>> for BoardBatcher<B> {
     fn batch(&self, items: Vec<String>) -> BoardBatch<B> {
         let parse_items = |line: &String| {
             let (fen, result) = split_last_comma(line);
-            let board = match Board::from_str(&fen) {
+            let board = match Board::from_str(fen) {
                 Ok(board) => board,
                 Err(e) => {
                     panic!("{:?}, {}", e, fen);
@@ -74,16 +71,16 @@ impl<B: Backend> Batcher<String, BoardBatch<B>> for BoardBatcher<B> {
             let mut stage = 0;
             for sq in Sq::iter() {
                 let cell = board.get(sq);
-                if cell != Cell::None {
-                    if cell.color().unwrap() == Color::White {
+                if let Some(c) = cell.color() {
+                    if c == Color::White {
                         values[cell.piece().unwrap().index() * 64 + sq.index()] += 1;
                     } else {
                         values[cell.piece().unwrap().index() * 64 + sq.flipped_rank().index()] -= 1;
                     }
-                    stage += FeatureLayer::STAGE_WEIGHTS[cell.index()];
+                    stage += PSQFeatureLayer::STAGE_WEIGHTS[cell.index()];
                 }
             }
-            let result = parse_result(&result).target();
+            let result = parse_result(result).unwrap().target();
             (
                 Tensor::<B, 2>::from_data(
                     TensorData::from([values; 1]).convert::<B::FloatElem>(),
@@ -101,7 +98,7 @@ impl<B: Backend> Batcher<String, BoardBatch<B>> for BoardBatcher<B> {
         };
 
         let (features, stages, targets) =
-            multiunzip(items.iter().map(parse_items).collect::<Vec<_>>());
+            itertools::multiunzip(items.iter().map(parse_items).collect::<Vec<_>>());
 
         let features = Tensor::cat(features, 0).to_device(&self.device);
         let stages = Tensor::cat(stages, 0).to_device(&self.device);
