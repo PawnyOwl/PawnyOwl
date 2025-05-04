@@ -881,7 +881,7 @@ fn do_diff_after_move<C: generic::Color>(
     b: &Board,
     mv: Move,
     u: &RawUndo,
-    l: &mut (impl DiffListener + ?Sized),
+    mut l: impl DiffListener,
 ) {
     let c = C::COLOR;
     let src_cell = b.get(mv.dst);
@@ -931,12 +931,7 @@ fn do_diff_after_move<C: generic::Color>(
 }
 
 #[inline]
-pub(crate) unsafe fn diff_after_move(
-    b: &Board,
-    mv: Move,
-    u: &RawUndo,
-    l: &mut (impl DiffListener + ?Sized),
-) {
+pub(crate) unsafe fn diff_after_move(b: &Board, mv: Move, u: &RawUndo, l: impl DiffListener) {
     match b.r.side {
         Color::White => do_diff_after_move::<generic::Black>(b, mv, u, l),
         Color::Black => do_diff_after_move::<generic::White>(b, mv, u, l),

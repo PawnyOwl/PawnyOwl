@@ -2,6 +2,8 @@
 members = [
     "base",
     "board",
+    "eval",
+    "tools/learner",
     "pawnyowl",
 ]
 resolver = "2"

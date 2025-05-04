@@ -1,0 +1,16 @@
+[package]
+name = "pawnyowl_learner"
+edition.workspace = true
+version.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow = "1.0.98"
+burn = { version = "0.16.1", features = ["train", "ndarray"] }
+burn-ndarray = "0.16.1"
+clap = { version = "4.0", features = ["derive"] }
+pawnyowl_board = { path = "../../board", version = "0.1.0" }
+pawnyowl_eval = { path = "../../eval", version = "0.1.0" }
+rand = "0.8"
+itertools = "0.14.0"

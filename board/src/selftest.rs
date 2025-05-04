@@ -46,7 +46,7 @@ fn filter_legal_moves(b: &Board, l: &mut MoveList) {
 #[derive(Clone)]
 struct SquareDiffListener([Cell; 64]);
 
-impl DiffListener for SquareDiffListener {
+impl DiffListener for &mut SquareDiffListener {
     fn upd(&mut self, sq: Sq, old: Cell, new: Cell) {
         let cell = unsafe { self.0.get_unchecked_mut(sq.index()) };
         assert_eq!(*cell, old);
