@@ -2,6 +2,7 @@ use crate::dataset::{BoardBatch, BoardBatcher, BoardItem, GameResult};
 use anyhow::{bail, Result};
 use burn::backend::Autodiff;
 use burn::backend::ndarray::NdArray;
+use burn_ndarray::NdArrayDevice;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::data::dataset::{Dataset, DatasetIterator};
 use burn::nn::Sigmoid;
@@ -20,7 +21,6 @@ use burn::{
     },
     train::LearnerBuilder,
 };
-use burn_ndarray::NdArrayDevice;
 use pawnyowl_board::{Board, Cell, Color, Sq};
 use pawnyowl_eval::layers::feature::{PSQFeatureLayer, ScorePair};
 use pawnyowl_eval::score::Score;
@@ -76,7 +76,7 @@ struct TrainingConfig {
     pub num_workers: usize,
     #[config(default = 42)]
     pub seed: u64,
-    #[config(default = 1.0e-3)]
+    #[config(default = 1.0e-2)]
     pub learning_rate: f64,
 }
 
@@ -153,9 +153,9 @@ fn split_last_comma(s: &str) -> (&str, &str) {
 
 fn parse_result(s: &str) -> Result<GameResult> {
     match s {
-        "1" => Ok(GameResult::WhiteWins),
-        "0.5" => Ok(GameResult::Draw),
-        "0" => Ok(GameResult::BlackWins),
+        "W" => Ok(GameResult::WhiteWins),
+        "D" => Ok(GameResult::Draw),
+        "B" => Ok(GameResult::BlackWins),
         _ => bail!("unknown result"),
     }
 }
@@ -264,16 +264,6 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, de
             new_row
         })
         .collect();
-
-    println!("Weights in Quirky format:");
-    for i in 0..384 {
-        print!(
-            "ScorePair({}, {}),",
-            weights[i ^ 56][0].round(),
-            weights[i ^ 56][1].round()
-        )
-    }
-    println!();
 
     let mut feature_layer_weights: [ScorePair; 64 * Cell::COUNT] =
         [ScorePair::new(Score::new(0), Score::new(0)); 64 * Cell::COUNT];
