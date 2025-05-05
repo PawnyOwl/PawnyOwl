@@ -1,5 +1,4 @@
 use std::ops::Mul;
-
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 
 pub type Stage = u8;
@@ -12,22 +11,27 @@ impl Score {
     pub fn new(v: i16) -> Self {
         Score(v)
     }
+
     #[inline]
     pub fn mate(move_count: usize) -> Self {
         Self::min() + Score(1 + move_count as i16)
     }
+
     #[inline]
     pub fn max() -> Self {
         Score(30000)
     }
+
     #[inline]
     pub fn min() -> Self {
         Score(-30000)
     }
+
     #[inline]
     pub fn mate_bound() -> Self {
         Score(-25000)
     }
+
     #[inline]
     pub fn value(self) -> i16 {
         self.0

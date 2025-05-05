@@ -28,10 +28,12 @@ impl ScorePair {
     pub fn new(f: Score, s: Score) -> Self {
         ScorePair(f.value() as i32 + (s.value() as i32) * (1 << 16))
     }
+
     #[inline]
     pub fn first(self) -> Score {
         Score::new(self.0 as i16)
     }
+
     #[inline]
     pub fn second(self) -> Score {
         let mut res = self.0 >> 16;
@@ -66,14 +68,17 @@ pub struct PSQFeatureLayer {
 impl PSQFeatureLayer {
     pub const STAGE_WEIGHTS: [Stage; Cell::COUNT] = [0, 0, 0, 1, 1, 2, 4, 0, 0, 1, 1, 2, 4];
     pub const INIT_STAGE: Stage = 24;
+
     #[inline]
     pub fn new(weights: [ScorePair; 64 * Cell::COUNT]) -> Self {
         Self { weights }
     }
+
     #[inline]
     pub fn input_index(cell: Cell, sq: Sq) -> usize {
         cell.index() * 64 + sq.index()
     }
+
     #[inline]
     pub fn init_feature_slice(&self) -> PSQFeatureSlice {
         PSQFeatureSlice {
@@ -81,6 +86,7 @@ impl PSQFeatureLayer {
             stage: 0,
         }
     }
+
     #[inline]
     pub fn update_feature_slice(
         &self,

@@ -1,13 +1,11 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{cmp, fs::File, io::Write};
-
 use pawnyowl_board::{
     Board, Cell, Color, Move, Sq,
     diff::{self, DiffListener},
     moves::RawUndo,
 };
-
 use crate::{
     layers::feature::{PSQFeatureLayer, PSQFeatureSlice},
     score::{Score, Stage},
