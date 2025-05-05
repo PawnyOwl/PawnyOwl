@@ -1,4 +1,4 @@
-use crate::score::{Score, Stage};
+use crate::eval::score::{Score, Stage};
 use derive_more::{Add, AddAssign, Sub, SubAssign};
 use pawnyowl_board::{Cell, Sq};
 use serde::{Deserialize, Serialize};

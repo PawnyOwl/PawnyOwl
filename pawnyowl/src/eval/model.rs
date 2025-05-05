@@ -1,15 +1,15 @@
+use crate::eval::{
+    layers::feature::{PsqFeatureLayer, PsqFeatureSlice},
+    score::{Score, Stage},
+};
 use anyhow::Result;
-use serde::{Deserialize, Serialize};
-use std::{cmp, fs::File, io::Write};
 use pawnyowl_board::{
     Board, Cell, Color, Move, Sq,
     diff::{self, DiffListener},
     moves::RawUndo,
 };
-use crate::{
-    layers::feature::{PsqFeatureLayer, PsqFeatureSlice},
-    score::{Score, Stage},
-};
+use serde::{Deserialize, Serialize};
+use std::{cmp, fs::File, io::Write};
 
 pub trait Model: Sized {
     type Tag;
@@ -61,7 +61,7 @@ impl Model for PsqModel {
 
     #[inline]
     fn new() -> Self {
-        let bytes = include_bytes!("../../incbin/model.paw");
+        let bytes = include_bytes!("../../data/model.paw");
         bincode::deserialize(bytes).unwrap()
     }
 

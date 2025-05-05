@@ -1,8 +1,7 @@
 use crate::dataset::{BoardBatch, BoardBatcher, BoardItem, GameResult};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use burn::backend::Autodiff;
 use burn::backend::ndarray::NdArray;
-use burn_ndarray::NdArrayDevice;
 use burn::data::dataloader::DataLoaderBuilder;
 use burn::data::dataset::{Dataset, DatasetIterator};
 use burn::nn::Sigmoid;
@@ -21,9 +20,10 @@ use burn::{
     },
     train::LearnerBuilder,
 };
+use burn_ndarray::NdArrayDevice;
+use pawnyowl::eval::layers::feature::{PsqFeatureLayer, ScorePair};
+use pawnyowl::eval::{model::PsqModel, score::Score};
 use pawnyowl_board::{Board, Cell, Color, Sq};
-use pawnyowl_eval::layers::feature::{PSQFeatureLayer, ScorePair};
-use pawnyowl_eval::score::Score;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
@@ -178,11 +178,15 @@ fn read_lines(filename: &str, seed: u64) -> Result<Vec<BoardItem>> {
                 } else {
                     features[cell.piece().unwrap().index() * 64 + sq.flipped_rank().index()] -= 1;
                 }
-                stage += PSQFeatureLayer::STAGE_WEIGHTS[cell.index()];
+                stage += PsqFeatureLayer::STAGE_WEIGHTS[cell.index()];
             }
         }
         let target = parse_result(result)?.target();
-        Ok(BoardItem { features, stage, target })
+        Ok(BoardItem {
+            features,
+            stage,
+            target,
+        })
     };
     let mut items = fens.iter().map(parse_fens).collect::<Result<Vec<_>>>()?;
     let mut rng = StdRng::seed_from_u64(seed);
@@ -282,12 +286,11 @@ fn train<B: AutodiffBackend>(dataset: &str, artifact: &str, model_path: &str, de
                 Score::new(weight_pair[0].round() as i16),
                 Score::new(weight_pair[1].round() as i16),
             );
-            feature_layer_weights[PSQFeatureLayer::input_index(cell, sq)] = score;
+            feature_layer_weights[PsqFeatureLayer::input_index(cell, sq)] = score;
         }
     }
 
-    let model =
-        pawnyowl_eval::model::PSQModel::from_layers(PSQFeatureLayer::new(feature_layer_weights));
+    let model = PsqModel::from_layers(PsqFeatureLayer::new(feature_layer_weights));
     model.store(model_path).unwrap();
 }
 

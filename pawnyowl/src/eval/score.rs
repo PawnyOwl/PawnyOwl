@@ -1,5 +1,5 @@
-use std::ops::Mul;
 use derive_more::{Add, AddAssign, Sub, SubAssign};
+use std::ops::Mul;
 
 pub type Stage = u8;
 
