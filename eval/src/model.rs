@@ -7,7 +7,7 @@ use pawnyowl_board::{
     moves::RawUndo,
 };
 use crate::{
-    layers::feature::{PSQFeatureLayer, PSQFeatureSlice},
+    layers::feature::{PsqFeatureLayer, PsqFeatureSlice},
     score::{Score, Stage},
 };
 
@@ -21,16 +21,16 @@ pub trait Model: Sized {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct PSQModel {
-    feature_layer: PSQFeatureLayer,
+pub struct PsqModel {
+    feature_layer: PsqFeatureLayer,
 }
 
-struct PSQListener<'a> {
-    model: &'a PSQModel,
-    feature_slice: &'a mut PSQFeatureSlice,
+struct PsqListener<'a> {
+    model: &'a PsqModel,
+    feature_slice: &'a mut PsqFeatureSlice,
 }
 
-impl DiffListener for PSQListener<'_> {
+impl DiffListener for PsqListener<'_> {
     #[inline]
     fn upd(&mut self, sq: Sq, old: Cell, new: Cell) {
         self.model
@@ -56,8 +56,8 @@ impl DiffListener for PSQListener<'_> {
     }
 }
 
-impl Model for PSQModel {
-    type Tag = PSQFeatureSlice;
+impl Model for PsqModel {
+    type Tag = PsqFeatureSlice;
 
     #[inline]
     fn new() -> Self {
@@ -85,7 +85,7 @@ impl Model for PSQModel {
                 board,
                 mv,
                 u,
-                PSQListener {
+                PsqListener {
                     model: self,
                     feature_slice: tag,
                 },
@@ -94,20 +94,20 @@ impl Model for PSQModel {
     }
 
     #[inline]
-    fn apply(&self, feature_slice: &PSQFeatureSlice, _move_side: Color) -> Score {
+    fn apply(&self, feature_slice: &PsqFeatureSlice, _move_side: Color) -> Score {
         let clipped_stage =
-            cmp::min(feature_slice.stage, PSQFeatureLayer::INIT_STAGE as Stage) as i32;
+            cmp::min(feature_slice.stage, PsqFeatureLayer::INIT_STAGE as Stage) as i32;
         Score::from(
             i32::from(feature_slice.score.first()) * clipped_stage
                 + i32::from(feature_slice.score.second())
-                    * (PSQFeatureLayer::INIT_STAGE as i32 - clipped_stage),
+                    * (PsqFeatureLayer::INIT_STAGE as i32 - clipped_stage),
         )
     }
 }
 
-impl PSQModel {
+impl PsqModel {
     #[inline]
-    pub fn from_layers(feature_layer: PSQFeatureLayer) -> Self {
+    pub fn from_layers(feature_layer: PsqFeatureLayer) -> Self {
         Self { feature_layer }
     }
 

@@ -54,18 +54,18 @@ impl Mul<i32> for ScorePair {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct PSQFeatureSlice {
+pub struct PsqFeatureSlice {
     pub score: ScorePair,
     pub stage: Stage,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct PSQFeatureLayer {
+pub struct PsqFeatureLayer {
     #[serde(with = "BigArray")]
     weights: [ScorePair; 64 * Cell::COUNT],
 }
 
-impl PSQFeatureLayer {
+impl PsqFeatureLayer {
     pub const STAGE_WEIGHTS: [Stage; Cell::COUNT] = [0, 0, 0, 1, 1, 2, 4, 0, 0, 1, 1, 2, 4];
     pub const INIT_STAGE: Stage = 24;
 
@@ -80,8 +80,8 @@ impl PSQFeatureLayer {
     }
 
     #[inline]
-    pub fn init_feature_slice(&self) -> PSQFeatureSlice {
-        PSQFeatureSlice {
+    pub fn init_feature_slice(&self) -> PsqFeatureSlice {
+        PsqFeatureSlice {
             score: ScorePair(0),
             stage: 0,
         }
@@ -90,7 +90,7 @@ impl PSQFeatureLayer {
     #[inline]
     pub fn update_feature_slice(
         &self,
-        features: &mut PSQFeatureSlice,
+        features: &mut PsqFeatureSlice,
         cell: Cell,
         sq: Sq,
         delta: i32,
